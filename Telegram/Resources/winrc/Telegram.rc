@@ -60,11 +60,12 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "CompanyName", "Telegram FZ-LLC"
-            VALUE "FileDescription", "Telegram Desktop"
+            VALUE "CompanyName", "KuttyGram"
+            VALUE "FileDescription", "KuttyGram Desktop"
             VALUE "FileVersion", "7.1.1.0"
             VALUE "LegalCopyright", "Copyright (C) 2014-2026"
-            VALUE "ProductName", "Telegram Desktop"
+            VALUE "OriginalFilename", "KuttyGram.exe"
+            VALUE "ProductName", "KuttyGram Desktop"
             VALUE "ProductVersion", "7.1.1.0"
         END
     END
