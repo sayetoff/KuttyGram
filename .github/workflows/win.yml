@@ -36,8 +36,14 @@ jobs:
       - name: Prepare directories.
         run: |
           mkdir %userprofile%\TBuild\Libraries
+          mkdir %userprofile%\TBuild\ThirdParty
           mklink /d %GITHUB_WORKSPACE%\TBuild %userprofile%\TBuild
+          mklink /J %userprofile%\TBuild\ThirdParty\msys64 C:\msys64
           echo TBUILD=%GITHUB_WORKSPACE%\TBuild>>%GITHUB_ENV%
+
+      - name: Setup MSYS2 packages.
+        run: |
+          C:\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm --needed mingw-w64-x86_64-perl mingw-w64-x86_64-nasm mingw-w64-x86_64-yasm mingw-w64-x86_64-ninja"
 
       - name: Get repository name.
         shell: bash
