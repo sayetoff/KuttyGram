@@ -1,6 +1,7 @@
 name: Windows.
 
 on:
+  workflow_dispatch:
   push:
     paths-ignore:
       - 'docs/**'
@@ -10,44 +11,17 @@ on:
       - 'LICENSE'
       - '.github/**'
       - '!.github/workflows/win.yml'
-      - 'lib/xdg/**'
-      - 'snap/**'
-      - 'Telegram/build/docker/**'
-      - 'Telegram/Resources/uwp/**'
-      - 'Telegram/SourceFiles/platform/linux/**'
-      - 'Telegram/SourceFiles/platform/mac/**'
-      - 'Telegram/Telegram/**'
-      - 'Telegram/configure.sh'
-      - 'Telegram/Telegram.plist'
-  pull_request:
-    paths-ignore:
-      - 'docs/**'
-      - '**.md'
-      - 'changelog.txt'
-      - 'LEGAL'
-      - 'LICENSE'
-      - '.github/**'
-      - '!.github/workflows/win.yml'
-      - 'lib/xdg/**'
-      - 'snap/**'
-      - 'Telegram/build/docker/**'
-      - 'Telegram/Resources/uwp/**'
-      - 'Telegram/SourceFiles/platform/linux/**'
-      - 'Telegram/SourceFiles/platform/mac/**'
-      - 'Telegram/Telegram/**'
-      - 'Telegram/configure.sh'
-      - 'Telegram/Telegram.plist'
 
 jobs:
-
   windows:
-    name: Windows
+    name: Windows (x64 Ninja)
     runs-on: windows-2022
 
     strategy:
+      fail-fast: false
       matrix:
-        arch: [Win32, x64]
-        generator: ["", "Ninja Multi-Config"]
+        arch: [x64]
+        generator: ["Ninja Multi-Config"]
 
     env:
       UPLOAD_ARTIFACT: "true"
@@ -75,7 +49,7 @@ jobs:
           arch: ${{ matrix.arch }}
 
       - name: Clone.
-        uses: actions/checkout@v3.1.0
+        uses: actions/checkout@v4
         with:
           submodules: recursive
           path: ${{ env.TBUILD }}\${{ env.REPO_NAME }}
@@ -96,7 +70,7 @@ jobs:
 
       - name: Libraries cache.
         id: cache-libs
-        uses: actions/cache@v3.0.11
+        uses: actions/cache@v4
         with:
           path: ${{ env.TBUILD }}\Libraries
           key: ${{ runner.OS }}-${{ matrix.arch }}-libs-${{ env.CACHE_KEY }}
@@ -113,45 +87,12 @@ jobs:
       - name: Read configuration matrix.
         shell: bash
         run: |
-          ARTIFACT_NAME="Telegram"
-
-          ARCH=""
-          if [ -n "${{ matrix.arch }}" ]; then
-            case "${{ matrix.arch }}" in
-              Win32) ARCH="x86";;
-              *) ARCH="${{ matrix.arch }}";;
-            esac
-            echo "Architecture from matrix: $ARCH"
-            ARTIFACT_NAME="${ARTIFACT_NAME}_${{ matrix.arch }}"
-          fi
-
-          GENERATOR=""
-          if [ -n "${{ matrix.generator }}" ]; then
-            GENERATOR="-G \"${{ matrix.generator }}\""
-            echo "Generator from matrix: $GENERATOR"
-            ARTIFACT_NAME="${ARTIFACT_NAME}_${{ matrix.generator }}"
-          fi
+          ARTIFACT_NAME="KuttyGram"
+          GENERATOR="-G \"${{ matrix.generator }}\""
           echo "TDESKTOP_BUILD_GENERATOR=$GENERATOR" >> $GITHUB_ENV
-
-          [ -n "$GENERATOR" ] && ARCH=""
-          echo "TDESKTOP_BUILD_ARCH=$ARCH" >> $GITHUB_ENV
-
-          DEFINE=""
-          if [ -n "${{ matrix.defines }}" ]; then
-            DEFINE="-D ${{ matrix.defines }}=ON"
-            echo "Define from matrix: $DEFINE"
-            ARTIFACT_NAME="${ARTIFACT_NAME}_${{ matrix.defines }}"
-          fi
-          echo "TDESKTOP_BUILD_DEFINE=$DEFINE" >> $GITHUB_ENV
-
+          echo "TDESKTOP_BUILD_ARCH=" >> $GITHUB_ENV
           echo "ARTIFACT_NAME=$ARTIFACT_NAME" >> $GITHUB_ENV
-
-          API="-D TDESKTOP_API_TEST=ON"
-          if [ $GITHUB_REF == 'refs/heads/nightly' ]; then
-            echo "Use the open credentials."
-            API="-D TDESKTOP_API_ID=611335 -D TDESKTOP_API_HASH=d524b414d21f4d37f08684c1df41ac9c"
-          fi
-          echo "TDESKTOP_BUILD_API=$API" >> $GITHUB_ENV
+          echo "TDESKTOP_BUILD_API=-D TDESKTOP_API_TEST=ON" >> $GITHUB_ENV
 
       - name: Free up some disk space.
         run: |
@@ -169,23 +110,26 @@ jobs:
           %TDESKTOP_BUILD_GENERATOR% ^
           %TDESKTOP_BUILD_ARCH% ^
           %TDESKTOP_BUILD_API% ^
+          -D CMAKE_CONFIGURATION_TYPES=Debug ^
+          -D CMAKE_COMPILE_WARNING_AS_ERROR=OFF ^
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF ^
           -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF ^
-          -D DESKTOP_APP_NO_PDB=ON ^
-          %TDESKTOP_BUILD_DEFINE%
+          -D DESKTOP_APP_NO_PDB=ON
 
           cmake --build ..\out --config Debug --parallel
 
       - name: Move artifact.
-        if: (env.UPLOAD_ARTIFACT == 'true') || (github.ref == 'refs/heads/nightly')
+        if: env.UPLOAD_ARTIFACT == 'true'
         run: |
           set OUT=%TBUILD%\%REPO_NAME%\out\Debug
           mkdir artifact
-          move %OUT%\Telegram.exe artifact/
-          move %OUT%\Updater.exe artifact/
-      - uses: actions/upload-artifact@master
+          move %OUT%\Telegram.exe artifact\KuttyGram.exe
+          move %OUT%\Updater.exe artifact\
+
+      - uses: actions/upload-artifact@v4
         name: Upload artifact.
-        if: (env.UPLOAD_ARTIFACT == 'true') || (github.ref == 'refs/heads/nightly')
+        if: env.UPLOAD_ARTIFACT == 'true'
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: artifact\
+          retention-days: 1
