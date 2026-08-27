@@ -36,14 +36,8 @@ jobs:
       - name: Prepare directories.
         run: |
           mkdir %userprofile%\TBuild\Libraries
-          mkdir %userprofile%\TBuild\ThirdParty
           mklink /d %GITHUB_WORKSPACE%\TBuild %userprofile%\TBuild
-          mklink /J %userprofile%\TBuild\ThirdParty\msys64 C:\msys64
           echo TBUILD=%GITHUB_WORKSPACE%\TBuild>>%GITHUB_ENV%
-
-      - name: Setup MSYS2 packages.
-        run: |
-          C:\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm --needed mingw-w64-x86_64-perl mingw-w64-x86_64-nasm mingw-w64-x86_64-yasm mingw-w64-x86_64-ninja"
 
       - name: Get repository name.
         shell: bash
@@ -59,6 +53,11 @@ jobs:
         with:
           submodules: recursive
           path: ${{ env.TBUILD }}\${{ env.REPO_NAME }}
+
+      - name: Patch MSYS2 mirror URL.
+        shell: bash
+        run: |
+          find "$TBUILD/$REPO_NAME/Telegram/build/prepare" -type f -exec sed -i 's|https://repo.msys2.org/distrib/x86_64/msys2-base-x86_64-20221028.sfx.exe|https://github.com/msys2/msys2-installer/releases/download/2022-10-28/msys2-base-x86_64-20221028.sfx.exe|g' {} +
 
       - name: Set up environment paths.
         shell: bash
