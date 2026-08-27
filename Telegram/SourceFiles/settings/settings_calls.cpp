@@ -306,13 +306,13 @@ void Calls::setupContent() {
 		api->authorizations().toggleCallsDisabledHere(!value);
 	}, content->lifetime());
 
-	content->add(object_ptr<Ui::SettingsButton>(
+content->add(object_ptr<Ui::SettingsButton>(
 		content,
 		tr::lng_settings_call_open_system_prefs(),
 		st::settingsButtonNoIcon
 	))->addClickHandler([=] {
-		using namespace ::Platform;
-		const auto opened = OpenSystemSettings(SystemSettingsType::Audio);
+		const auto opened = ::Platform::OpenSystemSettings(
+			::Platform::SystemSettingsType::Audio);
 		if (!opened) {
 			_controller->show(
 				Ui::MakeInformBox(tr::lng_linux_no_audio_prefs()));
@@ -405,27 +405,26 @@ void Calls::initCaptureButton(
 }
 
 void Calls::requestPermissionAndStartTestingMicrophone() {
-	using namespace ::Platform;
-	const auto status = GetPermissionStatus(
-		PermissionType::Microphone);
-	if (status == PermissionStatus::Granted) {
+	const auto status = ::Platform::GetPermissionStatus(
+		::Platform::PermissionType::Microphone);
+	if (status == ::Platform::PermissionStatus::Granted) {
 		_testingMicrophone = true;
-	} else if (status == PermissionStatus::CanRequest) {
+	} else if (status == ::Platform::PermissionStatus::CanRequest) {
 		const auto startTestingChecked = crl::guard(this, [=](
-				PermissionStatus status) {
-			if (status == PermissionStatus::Granted) {
+				::Platform::PermissionStatus status) {
+			if (status == ::Platform::PermissionStatus::Granted) {
 				crl::on_main(crl::guard(this, [=] {
 					_testingMicrophone = true;
 				}));
 			}
 		});
-		RequestPermission(
-			PermissionType::Microphone,
+		::Platform::RequestPermission(
+			::Platform::PermissionType::Microphone,
 			startTestingChecked);
 	} else {
 		const auto showSystemSettings = [controller = _controller] {
-			OpenSystemSettingsForPermission(
-				PermissionType::Microphone);
+			::Platform::OpenSystemSettingsForPermission(
+				::Platform::PermissionType::Microphone);
 			controller->hideLayer();
 		};
 		_controller->show(Ui::MakeConfirmBox({
